@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>签收签收地址生成器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- 配置Tailwind自定义主题 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3B82F6',
+            secondary: '#10B981',
+            accent: '#8B5CF6',
+            neutral: '#64748B',
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .card-shadow {
+        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.1), 0 8px 10px -6px rgba(59, 130, 246, 0.1);
+      }
+      .input-focus {
+        @apply focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none;
+      }
+      .btn-hover {
+        @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300;
+      }
+    }
+  </style>
+</head>
+<body class="font-inter bg-gray-50 min-h-screen flex flex-col">
+  <!-- 顶部导航 -->
+  <header class="bg-white shadow-sm sticky top-0 z-10">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-map-marker text-primary text-2xl"></i>
+        <h1 class="text-xl md:text-2xl font-bold text-gray-800">下单地址生成器</h1>
+      </div>
+      <div class="text-sm text-gray-500 hidden md:block">
+        便捷生成指定区域地址
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要内容区 -->
+  <main class="flex-grow container mx-auto px-4 py-8 md:py-16">
+    <div class="max-w-3xl mx-auto">
+      <!-- 介绍卡片 -->
+      <div class="bg-gradient-to-r from-primary/5 to-accent/5 rounded-xl p-6 mb-8 border border-primary/10">
+        <h2 class="text-lg font-semibold text-gray-800 mb-2 flex items-center">
+          <i class="fa fa-info-circle text-primary mr-2"></i>使用说明
+        </h2>
+        <p class="text-gray-600 text-sm">
+          输入微信昵称、手机号并选择仓库所在区域，系统将为您生成下单地址，请将商品发到生成的地址。
+        </p>
+      </div>
+      
+      <!-- 生成器卡片 -->
+      <div class="bg-white rounded-2xl p-6 md:p-8 card-shadow mb-8">
+        <form id="addressForm" class="space-y-6">
+          <!-- 微信昵称输入 -->
+          <div>
+            <label for="wechatName" class="block text-sm font-medium text-gray-700 mb-1">微信昵称</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                <i class="fa fa-weixin"></i>
+              </span>
+              <input 
+                type="text" 
+                id="wechatName" 
+                placeholder="请输入微信昵称" 
+                class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 input-focus transition-all"
+                required
+              >
+            </div>
+          </div>
+          
+          <!-- 手机号输入 -->
+          <div>
+            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">手机号码</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                <i class="fa fa-phone"></i>
+              </span>
+              <input 
+                type="tel" 
+                id="phone" 
+                placeholder="请输入11位手机号码" 
+                class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 input-focus transition-all"
+                maxlength="11"
+                required
+              >
+              <span id="phoneError" class="hidden text-red-500 text-xs mt-1 block">请输入有效的11位手机号码</span>
+            </div>
+          </div>
+          
+          <!-- 区域选择 -->
+          <div>
+            <label for="region" class="block text-sm font-medium text-gray-700 mb-1">仓库区域</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                <i class="fa fa-map"></i>
+              </span>
+              <select 
+                id="region" 
+                class="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 input-focus appearance-none bg-white transition-all"
+                required
+              >
+                <option value="">请选择区域</option>
+                <option value="shanghai">上海市</option>
+                <option value="shenzhen">深圳市</option>
+              </select>
+              <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 pointer-events-none">
+                <i class="fa fa-chevron-down text-xs"></i>
+              </span>
+            </div>
+          </div>
+          
+          <!-- 生成按钮 -->
+          <button 
+            type="submit" 
+            class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg flex justify-center items-center space-x-2 btn-hover"
+          >
+            <i class="fa fa-magic"></i>
+            <span>生成地址</span>
+          </button>
+        </form>
+      </div>
+      
+      <!-- 结果展示区 -->
+      <div id="resultContainer" class="hidden">
+        <div class="bg-white rounded-2xl p-6 md:p-8 card-shadow mb-6 border-t-4 border-secondary">
+          <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fa fa-check-circle text-secondary mr-2"></i>生成结果
+          </h2>
+          
+          <div class="space-y-4 text-gray-700">
+            <div class="flex flex-col md:flex-row md:items-center">
+              <span class="text-gray-500 text-sm md:w-24">微信昵称：</span>
+              <span id="resultWechat" class="font-medium"></span>
+            </div>
+            <div class="flex flex-col md:flex-row md:items-center">
+              <span class="text-gray-500 text-sm md:w-24">手机号码：</span>
+              <span id="resultPhone" class="font-medium"></span>
+            </div>
+            <div class="flex flex-col md:flex-row md:items-center">
+              <span class="text-gray-500 text-sm md:w-24">所在地区：</span>
+              <span id="resultRegion" class="font-medium"></span>
+            </div>
+            <div class="flex flex-col md:flex-row md:items-start">
+              <span class="text-gray-500 text-sm md:w-24 pt-1">详细地址：</span>
+              <span id="resultAddress" class="font-medium"></span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="flex space-x-4">
+          <button 
+            id="copyAllBtn" 
+            class="flex-1 bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg flex justify-center items-center space-x-2 btn-hover"
+          >
+            <i class="fa fa-clone"></i>
+            <span>一键复制</span>
+          </button>
+          <button 
+            id="regenerateBtn" 
+            class="flex-1 bg-accent hover:bg-accent/90 text-white font-medium py-3 px-4 rounded-lg flex justify-center items-center space-x-2 btn-hover"
+          >
+            <i class="fa fa-refresh"></i>
+            <span>重新生成</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 底部信息 -->
+  <footer class="bg-gray-800 text-gray-300 py-6">
+    <div class="container mx-auto px-4 text-center text-sm">
+      <p>地址生成器 &copy; 2023 | 仅用于测试和演示目的</p>
+      <p class="mt-1">生成的地址为随机模拟数据，非真实地址</p>
+    </div>
+  </footer>
+
+  <!-- 复制成功提示 -->
+  <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 flex items-center space-x-2">
+    <i class="fa fa-check"></i>
+    <span>复制成功！</span>
+  </div>
+
+  <script>
+    // 地址数据 - 各地区的基础数据
+    const addressData = {
+      shanghai: {
+        name: "上海市",
+        districts: ["徐汇区"],
+        roads: ["枫林街道"],
+        communities: ["小木桥路新湖云亭", "中山南二路宝溢丰大厦", "中山南二路泰莱大厦", "小木桥路中粮食大厦"]
+      },
+      shenzhen: {
+        name: "深圳市",
+        districts: ["龙岗区"],
+        roads: ["布吉街道"],
+        communities: ["宝丽路泽润华庭", "西环路钱排村", "西环路德兴花园", "西环路德隆苑"]
+      }
+    };
+
+    // 工具函数 - 从数组中随机选择一个元素
+    function getRandomItem(array) {
+      return array[Math.floor(Math.random() * array.length)];
+    }
+
+    // 生成随机门牌号，上海地区固定以6682结尾
+    function generateHouseNumber(regionCode) {
+      const roadNumber = Math.floor(Math.random() * 1000) + 1;
+      const unit = Math.floor(Math.random() * 20) + 1;
+      const floor = Math.floor(Math.random() * 30) + 1;
+      
+      // 上海地区固定以6682结尾，其他地区随机
+      const room = regionCode === 'shanghai' ? 6682 : Math.floor(Math.random() * 20) + 1;
+      
+      return `${roadNumber}号 ${unit}单元 ${floor}层${room}号`;
+    }
+
+    // 生成完整地址
+    function generateAddress(regionCode) {
+      const region = addressData[regionCode];
+      if (!region) return "";
+      
+      const district = getRandomItem(region.districts);
+      const road = getRandomItem(region.roads);
+      const community = getRandomItem(region.communities);
+      const houseNumber = generateHouseNumber(regionCode); // 传入区域代码以确定是否特殊处理
+      
+      return `${region.name}${district}${road}${community}${houseNumber}`;
+    }
+
+    // 验证手机号
+    function validatePhone(phone) {
+      const reg = /^1[3-9]\d{9}$/;
+      return reg.test(phone);
+    }
+
+    // 显示提示信息
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.querySelector('span').textContent = message;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2000);
+    }
+
+    // 复制到剪贴板
+    function copyToClipboard(text, successMsg = '复制成功！') {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(successMsg);
+      }).catch(err => {
+        showToast('复制失败，请手动复制');
+        console.error('复制失败:', err);
+      });
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('addressForm');
+      const wechatInput = document.getElementById('wechatName');
+      const phoneInput = document.getElementById('phone');
+      const phoneError = document.getElementById('phoneError');
+      const regionSelect = document.getElementById('region');
+      const resultContainer = document.getElementById('resultContainer');
+      const resultWechat = document.getElementById('resultWechat');
+      const resultPhone = document.getElementById('resultPhone');
+      const resultRegion = document.getElementById('resultRegion');
+      const resultAddress = document.getElementById('resultAddress');
+      const copyAllBtn = document.getElementById('copyAllBtn');
+      const regenerateBtn = document.getElementById('regenerateBtn');
+      
+      // 手机号输入验证
+      phoneInput.addEventListener('input', () => {
+        if (phoneInput.value.length === 11) {
+          if (!validatePhone(phoneInput.value)) {
+            phoneError.classList.remove('hidden');
+          } else {
+            phoneError.classList.add('hidden');
+          }
+        } else {
+          phoneError.classList.add('hidden');
+        }
+      });
+      
+      // 表单提交处理
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const wechatName = wechatInput.value.trim();
+        const phone = phoneInput.value.trim();
+        const regionCode = regionSelect.value;
+        
+        // 验证输入
+        if (!wechatName) {
+          wechatInput.focus();
+          return;
+        }
+        
+        if (!validatePhone(phone)) {
+          phoneError.classList.remove('hidden');
+          phoneInput.focus();
+          return;
+        }
+        
+        if (!regionCode) {
+          regionSelect.focus();
+          return;
+        }
+        
+        // 生成地址
+        const address = generateAddress(regionCode);
+        const regionName = addressData[regionCode].name;
+        
+        // 显示结果
+        resultWechat.textContent = wechatName;
+        resultPhone.textContent = phone;
+        resultRegion.textContent = regionName;
+        resultAddress.textContent = address;
+        
+        // 显示结果区域并添加动画
+        resultContainer.classList.remove('hidden');
+        resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      
+      // 复制全部信息（昵称、手机号、地址）
+      copyAllBtn.addEventListener('click', () => {
+        const allInfo = `微信昵称：${resultWechat.textContent}
+手机号码：${resultPhone.textContent}
+所在地区：${resultRegion.textContent}
+详细地址：${resultAddress.textContent}`;
+        copyToClipboard(allInfo, '全部信息已复制！');
+      });
+      
+      // 重新生成地址
+      regenerateBtn.addEventListener('click', () => {
+        const regionCode = regionSelect.value;
+        if (regionCode) {
+          const newAddress = generateAddress(regionCode);
+          resultAddress.textContent = newAddress;
+          showToast('已重新生成地址');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
