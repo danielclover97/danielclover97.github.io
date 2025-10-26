@@ -204,6 +204,9 @@
     <span>复制成功！</span>
   </div>
 
+  <!-- 用于复制的隐藏文本区域 -->
+  <textarea id="copyHelper" class="hidden"></textarea>
+
   <script>
     // 地址数据 - 各地区的基础数据
     const addressData = {
@@ -270,14 +273,43 @@
       }, 2000);
     }
 
-    // 复制到剪贴板
+    // 复制到剪贴板 - 增加兼容性处理
     function copyToClipboard(text, successMsg = '复制成功！') {
-      navigator.clipboard.writeText(text).then(() => {
-        showToast(successMsg);
-      }).catch(err => {
+      // 方法1: 使用Clipboard API（现代浏览器）
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(successMsg);
+        }).catch(err => {
+          console.error('Clipboard API 失败:', err);
+          fallbackCopy(text, successMsg); // 降级处理
+        });
+      } else {
+        // 方法2: 降级使用textarea复制（兼容所有浏览器）
+        fallbackCopy(text, successMsg);
+      }
+    }
+
+    // 降级复制方法（兼容非HTTPS环境和旧浏览器）
+    function fallbackCopy(text, successMsg) {
+      const copyHelper = document.getElementById('copyHelper');
+      copyHelper.value = text;
+      copyHelper.select();
+      copyHelper.setSelectionRange(0, 99999); // 适配移动设备
+      
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showToast(successMsg);
+        } else {
+          showToast('复制失败，请手动复制');
+        }
+      } catch (err) {
+        console.error('执行复制命令失败:', err);
         showToast('复制失败，请手动复制');
-        console.error('复制失败:', err);
-      });
+      }
+      
+      // 清除选中状态
+      window.getSelection().removeAllRanges();
     }
 
     // 页面加载完成后初始化
@@ -350,10 +382,17 @@
       
       // 复制全部信息（昵称、手机号、地址）
       copyAllBtn.addEventListener('click', () => {
+        // 确保结果已生成
+        if (!resultWechat.textContent) {
+          showToast('请先生成地址');
+          return;
+        }
+        
         const allInfo = `微信昵称：${resultWechat.textContent}
 手机号码：${resultPhone.textContent}
 所在地区：${resultRegion.textContent}
 详细地址：${resultAddress.textContent}`;
+        
         copyToClipboard(allInfo, '全部信息已复制！');
       });
       
