@@ -380,21 +380,48 @@
         resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
       
-      // 复制全部信息（昵称、手机号、地址）
-      copyAllBtn.addEventListener('click', () => {
-        // 确保结果已生成
-        if (!resultWechat.textContent) {
-          showToast('请先生成地址');
-          return;
-        }
-        
-        const allInfo = `微信昵称：${resultWechat.textContent}
-手机号码：${resultPhone.textContent}
-所在地区：${resultRegion.textContent}
-详细地址：${resultAddress.textContent}`;
-        
-        copyToClipboard(allInfo, '全部信息已复制！');
-      });
+     // 替换原有的 copyAllBtn 点击事件
+copyAllBtn.addEventListener('click', async () => {
+  // 1. 验证是否有可复制的内容
+  if (!resultWechat.textContent || !resultPhone.textContent || !resultAddress.textContent) {
+    showToast('请先生成地址信息');
+    return;
+  }
+
+  // 2. 构建要复制的内容（移除多余缩进，避免复制后有不必要的空格）
+  const allInfo = [
+    `联系人：${resultWechat.textContent}`,
+    `手机号码：${resultPhone.textContent}`,
+    `所在地区：${resultRegion.textContent}`,
+    `详细地址：${resultAddress.textContent}`
+  ].join('\n'); // 使用数组拼接避免模板字符串的缩进问题
+
+  try {
+    // 3. 优先使用 Clipboard API（GitHub Pages 是 HTTPS，理论支持）
+    await navigator.clipboard.writeText(allInfo);
+    showToast('全部信息已复制！');
+  } catch (err) {
+    console.warn('Clipboard API 失败，尝试降级方案:', err);
+    
+    // 4. 降级方案：使用 textarea 模拟复制（兼容所有场景）
+    const textarea = document.createElement('textarea');
+    textarea.value = allInfo;
+    textarea.style.position = 'fixed'; // 避免滚动到视图外
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, 99999); // 适配移动设备
+    
+    try {
+      const successful = document.execCommand('copy');
+      showToast(successful ? '全部信息已复制！' : '复制失败，请手动复制');
+    } catch (innerErr) {
+      console.error('复制失败:', innerErr);
+      showToast('复制失败，请手动复制');
+    } finally {
+      document.body.removeChild(textarea); // 清理临时元素
+    }
+  }
+});
       
       // 重新生成地址
       regenerateBtn.addEventListener('click', () => {
