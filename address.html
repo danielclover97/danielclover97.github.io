@@ -162,9 +162,15 @@
               <span class="text-gray-500 text-sm md:w-24">所在地区：</span>
               <span id="resultRegion" class="font-medium"></span>
             </div>
+            <!-- 在详细地址区域下方添加备注区域 -->
             <div class="flex flex-col md:flex-row md:items-start">
               <span class="text-gray-500 text-sm md:w-24 pt-1">详细地址：</span>
               <span id="resultAddress" class="font-medium"></span>
+            </div>
+            <!-- 新增备注区域 -->
+            <div class="flex flex-col md:flex-row md:items-start mt-2">
+              <span class="text-gray-500 text-sm md:w-24 pt-1">备注信息：</span>
+              <span id="resultRemark" class="font-medium text-gray-600 italic"></span>
             </div>
           </div>
         </div>
@@ -193,7 +199,7 @@
   <!-- 底部信息 -->
   <footer class="bg-gray-800 text-gray-300 py-6">
     <div class="container mx-auto px-4 text-center text-sm">
-      <p>地址生成器 &copy; 仅用于墨家宝撸坊</p>
+      <p>地址生成器 &copy; 2023 | 墨者宝撸坊专用</p>
       <p class="mt-1">生成的地址为随机模拟数据，非真实地址</p>
     </div>
   </footer>
@@ -204,9 +210,6 @@
     <span>复制成功！</span>
   </div>
 
-  <!-- 用于复制的隐藏文本区域 -->
-  <textarea id="copyHelper" class="hidden"></textarea>
-
   <script>
     // 地址数据 - 各地区的基础数据
     const addressData = {
@@ -214,7 +217,7 @@
         name: "上海市",
         districts: ["徐汇区"],
         roads: ["枫林街道"],
-        communities: ["小木桥路538弄新湖云亭", "中山南二路440号宝溢丰大厦", "中山南二路508号泰莱大厦", "中山南二路500号恒文大厦"]
+        communities: ["小木桥路新湖云亭", "中山南二路宝溢丰大厦", "中山南二路泰莱大厦", "小木桥路中粮食大厦"]
       },
       shenzhen: {
         name: "深圳市",
@@ -273,43 +276,14 @@
       }, 2000);
     }
 
-    // 复制到剪贴板 - 增加兼容性处理
+    // 复制到剪贴板
     function copyToClipboard(text, successMsg = '复制成功！') {
-      // 方法1: 使用Clipboard API（现代浏览器）
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(() => {
-          showToast(successMsg);
-        }).catch(err => {
-          console.error('Clipboard API 失败:', err);
-          fallbackCopy(text, successMsg); // 降级处理
-        });
-      } else {
-        // 方法2: 降级使用textarea复制（兼容所有浏览器）
-        fallbackCopy(text, successMsg);
-      }
-    }
-
-    // 降级复制方法（兼容非HTTPS环境和旧浏览器）
-    function fallbackCopy(text, successMsg) {
-      const copyHelper = document.getElementById('copyHelper');
-      copyHelper.value = text;
-      copyHelper.select();
-      copyHelper.setSelectionRange(0, 99999); // 适配移动设备
-      
-      try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-          showToast(successMsg);
-        } else {
-          showToast('复制失败，请手动复制');
-        }
-      } catch (err) {
-        console.error('执行复制命令失败:', err);
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(successMsg);
+      }).catch(err => {
         showToast('复制失败，请手动复制');
-      }
-      
-      // 清除选中状态
-      window.getSelection().removeAllRanges();
+        console.error('复制失败:', err);
+      });
     }
 
     // 页面加载完成后初始化
@@ -368,67 +342,47 @@
         // 生成地址
         const address = generateAddress(regionCode);
         const regionName = addressData[regionCode].name;
+
+        // 生成备注信息
+        const remark = regionCode === 'shanghai' 
+          ? '麻烦外卖小哥送到新湖云亭538弄2号底楼，底楼有监控。' 
+          : '无特殊备注';
+  
         
         // 显示结果
         resultWechat.textContent = wechatName;
         resultPhone.textContent = phone;
         resultRegion.textContent = regionName;
         resultAddress.textContent = address;
+        resultRemark.textContent = remark; // 显示备注
         
         // 显示结果区域并添加动画
         resultContainer.classList.remove('hidden');
         resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
       
-     // 替换原有的 copyAllBtn 点击事件
-copyAllBtn.addEventListener('click', async () => {
-  // 1. 验证是否有可复制的内容
-  if (!resultWechat.textContent || !resultPhone.textContent || !resultAddress.textContent) {
-    showToast('请先生成地址信息');
-    return;
-  }
-
-  // 2. 构建要复制的内容（移除多余缩进，避免复制后有不必要的空格）
-  const allInfo = [
-    `联系人：${resultWechat.textContent}`,
-    `手机号码：${resultPhone.textContent}`,
-    `所在地区：${resultRegion.textContent}`,
-    `详细地址：${resultAddress.textContent}`
-  ].join('\n'); // 使用数组拼接避免模板字符串的缩进问题
-
-  try {
-    // 3. 优先使用 Clipboard API（GitHub Pages 是 HTTPS，理论支持）
-    await navigator.clipboard.writeText(allInfo);
-    showToast('全部信息已复制！');
-  } catch (err) {
-    console.warn('Clipboard API 失败，尝试降级方案:', err);
-    
-    // 4. 降级方案：使用 textarea 模拟复制（兼容所有场景）
-    const textarea = document.createElement('textarea');
-    textarea.value = allInfo;
-    textarea.style.position = 'fixed'; // 避免滚动到视图外
-    document.body.appendChild(textarea);
-    textarea.select();
-    textarea.setSelectionRange(0, 99999); // 适配移动设备
-    
-    try {
-      const successful = document.execCommand('copy');
-      showToast(successful ? '全部信息已复制！' : '复制失败，请手动复制');
-    } catch (innerErr) {
-      console.error('复制失败:', innerErr);
-      showToast('复制失败，请手动复制');
-    } finally {
-      document.body.removeChild(textarea); // 清理临时元素
-    }
-  }
-});
+      // 复制全部信息（昵称、手机号、地址）
+      copyAllBtn.addEventListener('click', () => {
+        const allInfo = `微信昵称：${resultWechat.textContent}
+手机号码：${resultPhone.textContent}
+所在地区：${resultRegion.textContent}
+详细地址：${resultAddress.textContent}`;
+        copyToClipboard(allInfo, '全部信息已复制！');
+      });
       
       // 重新生成地址
       regenerateBtn.addEventListener('click', () => {
-        const regionCode = regionSelect.value;
-        if (regionCode) {
-          const newAddress = generateAddress(regionCode);
-          resultAddress.textContent = newAddress;
+          const regionCode = regionSelect.value;
+          if (regionCode) {
+            const newAddress = generateAddress(regionCode);
+            resultAddress.textContent = newAddress;
+            showToast('已重新生成地址');
+          // 更新备注信息
+          const remark = regionCode === 'shanghai' 
+            ? '麻烦外卖小哥送到新湖云亭538弄2号底楼，底楼有监控。' 
+            : '无特殊备注';
+          resultRemark.textContent = remark;
+          
           showToast('已重新生成地址');
         }
       });
